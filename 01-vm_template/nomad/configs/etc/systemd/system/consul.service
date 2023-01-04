@@ -1,0 +1,15 @@
+[Unit]
+Description=consul agent
+Requires=network
+After=network
+
+[Service]
+Environment=GOMAXPROCS=2
+Restart=on-failure
+ExecStart=/usr/bin/consul agent -config-dir=/etc/consul
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

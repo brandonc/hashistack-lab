@@ -1,0 +1,5 @@
+secrets.json
+secrets.tfvars
+.envrc
+*.tfstate.backup
+.terraform

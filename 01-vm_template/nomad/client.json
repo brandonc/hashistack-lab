@@ -1,0 +1,102 @@
+{
+  "variables": {
+    "proxmox_url": "{{env `TF_VAR_proxmox_url`}}/api2/json",
+    "proxmox_vm_id": "902",
+    "proxmox_iso_storage": "local",
+    "proxmox_template_name": "nomad-client",
+    "ubuntu_iso_file": "ubuntu-22.04.1-live-server-amd64.iso",
+    "proxmox_node": "{{ env `PROXMOX_NODE` }}",
+    "cores": "2",
+    "sockets": "2",
+    "memory": "32768",
+    "_COMMENT": "Needs to be set in the user-data section of the http/user-data cloud-init file",
+    "ssh_username": "brandonc",
+    "ssh_password": "brandonc",
+    "storage_pool": "ssdimage",
+    "storage_pool_type": "zfspool"
+  },
+
+  "sensitive-variables": [
+    "proxmox_password",
+    "ssh_password"
+  ],
+
+  "builders": [{
+    "type": "proxmox",
+    "proxmox_url": "{{ user `proxmox_url` }}",
+    "insecure_skip_tls_verify": true,
+
+    "username": "{{ user `proxmox_username` }}",
+    "password": "{{ user `proxmox_password` }}",
+    "node": "{{ user `proxmox_node` }}",
+    "vm_id": "{{ user `proxmox_vm_id` }}",
+
+    "os": "l26",
+
+    "network_adapters": [{
+      "model": "virtio",
+      "bridge": "vmbr0"
+    }],
+
+    "disks": [{
+      "type": "scsi",
+      "disk_size": "32G",
+      "storage_pool": "{{ user `storage_pool` }}",
+      "storage_pool_type": "{{ user `storage_pool_type` }}"
+    }],
+
+    "iso_file": "{{ user `proxmox_iso_storage` }}:iso/{{ user `ubuntu_iso_file` }}",
+    "unmount_iso": true,
+
+    "qemu_agent": true,
+
+    "cores": "{{user `cores`}}",
+    "memory": "{{user `memory`}}",
+
+    "boot_wait": "10s",
+    "template_name": "{{ user `proxmox_template_name` }}",
+    "http_directory": "http",
+
+    "boot_command": [
+      "c",
+      "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/' ",
+      "<enter><wait6>",
+      "initrd /casper/initrd<enter><wait15>",
+      "boot<enter>"
+    ],
+
+    "ssh_username": "{{ user `ssh_username` }}",
+    "ssh_password": "{{ user `ssh_password` }}",
+    "ssh_timeout": "120m"
+  }],
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+        "exit 0"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "./configs",
+      "destination": "/tmp"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/",
+      "destination": "/tmp/"
+    },
+    {
+      "type": "shell",
+      "inline_shebang": "/bin/bash -e",
+      "inline": ["/bin/bash /tmp/provision.sh"]
+    },
+    {
+      "type": "shell",
+      "inline_shebang": "/bin/bash -e",
+      "inline": ["/bin/bash /tmp/client.sh"]
+    }
+  ]
+}
