@@ -9,6 +9,8 @@
 }
 ```
 
+You can customize other packer variables there as well.
+
 2. Run packer from the nomad directory:
 
 `$ cd nomad`
